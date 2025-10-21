@@ -834,9 +834,31 @@
         .force-update .update-later-btn {
             display: none;
         }
+        
+        /* Adsterra Ads Container */
+        #adsterra-socialbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #1a1a1a;
+            z-index: 1000;
+            padding: 10px;
+            display: none;
+        }
+        
+        #adsterra-popunder {
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <!-- Adsterra Social Bar Container -->
+    <div id="adsterra-socialbar"></div>
+    
+    <!-- Adsterra Popunder Container -->
+    <div id="adsterra-popunder"></div>
+
     <!-- Update Popup -->
     <div class="update-popup-overlay" id="update-popup">
         <div class="update-popup" id="update-popup-content">
@@ -999,8 +1021,8 @@
             <div class="download-btn-container">
                 <button id="download-btn" class="btn btn-3d-neon">DOWNLOAD</button>
             </div>
-            
-            <!-- Ad Container -->
+           
+             <!-- Ad Container -->
             <div id="ad-container-details" class="ad-container">
                 <div class="ad-label">ADVERTISEMENT</div>
                 <div class="ad-content" id="details-ad-content">
@@ -1084,6 +1106,10 @@
         const filesAdContent = document.getElementById('files-ad-content');
         const detailsAdContent = document.getElementById('details-ad-content');
         const fileDetailAdContent = document.getElementById('file-detail-ad-content');
+        
+        // Adsterra containers
+        const adsterraSocialbar = document.getElementById('adsterra-socialbar');
+        const adsterraPopunder = document.getElementById('adsterra-popunder');
         
         // Data storage
         let allApps = [];
@@ -1237,6 +1263,72 @@
             localStorage.setItem('lastUpdateShown', update.id);
         };
 
+        // Load and Display Adsterra Ads
+        const loadAdsterraAds = (ads) => {
+            // Clear existing ads
+            adsterraSocialbar.innerHTML = '';
+            adsterraPopunder.innerHTML = '';
+            adsterraSocialbar.style.display = 'none';
+            
+            // Filter active Adsterra ads
+            const adsterraAds = ads.filter(ad => ad.platform === 'adsterra' && ad.active);
+            
+            if (adsterraAds.length === 0) {
+                return;
+            }
+            
+            // Process each Adsterra ad
+            adsterraAds.forEach(ad => {
+                if (ad.type === 'socialbar') {
+                    // Load Social Bar ad
+                    loadSocialBarAd(ad.script);
+                } else if (ad.type === 'popunder') {
+                    // Load Popunder ad
+                    loadPopunderAd(ad.script);
+                }
+            });
+        };
+
+        // Load Social Bar Ad
+        const loadSocialBarAd = (script) => {
+            try {
+                // Create a script element
+                const scriptElement = document.createElement('script');
+                scriptElement.innerHTML = script;
+                
+                // Append to social bar container
+                adsterraSocialbar.appendChild(scriptElement);
+                adsterraSocialbar.style.display = 'block';
+                
+                console.log('Social Bar ad loaded successfully');
+            } catch (error) {
+                console.error('Error loading Social Bar ad:', error);
+            }
+        };
+
+        // Load Popunder Ad
+        const loadPopunderAd = (script) => {
+            try {
+                // Create a script element
+                const scriptElement = document.createElement('script');
+                scriptElement.innerHTML = script;
+                
+                // Append to popunder container
+                adsterraPopunder.appendChild(scriptElement);
+                
+                console.log('Popunder ad loaded successfully');
+            } catch (error) {
+                console.error('Error loading Popunder ad:', error);
+            }
+        };
+
+        // Trigger Popunder Ad on user action
+        const triggerPopunderAd = () => {
+            // This would be called on user actions like clicks
+            // For demonstration, we'll just log it
+            console.log('Popunder ad triggered');
+        };
+
         // Sidebar Toggle
         menuToggle.addEventListener('click', () => {
             sidebar.classList.add('active');
@@ -1373,6 +1465,9 @@
                     }
                 });
                 
+                // Load Adsterra ads
+                loadAdsterraAds(allAds);
+                
                 // Display ads in different containers
                 displayAds();
             } catch (error) {
@@ -1426,33 +1521,17 @@
             // For demo purposes, we'll create mock ad content
             let adHtml = '';
             
-            if (ad.platform === 'admob') {
+            if (ad.platform === 'adsterra') {
                 adHtml = `
-                    <div class="ad-title">AdMob ${ad.type} Ad</div>
-                    <div class="ad-description">This is a sample ${ad.type} ad from AdMob</div>
-                    <a href="#" class="ad-cta" data-ad-id="${ad.id}">Learn More</a>
-                `;
-            } else if (ad.platform === 'startio') {
-                adHtml = `
-                    <div class="ad-title">Start.io ${ad.type} Ad</div>
-                    <div class="ad-description">This is a sample ${ad.type} ad from Start.io</div>
-                    <a href="#" class="ad-cta" data-ad-id="${ad.id}">Learn More</a>
+                    <div class="ad-title">Adsterra ${ad.type} Ad</div>
+                    <div class="ad-description">This is a ${ad.type} ad from Adsterra</div>
+                    <div style="color: var(--neon-blue); font-size: 12px; margin-top: 10px;">
+                        <i class="fas fa-info-circle"></i> Ad is active and running
+                    </div>
                 `;
             }
             
             container.innerHTML = adHtml;
-            
-            // Add click event to CTA button
-            const ctaButton = container.querySelector('.ad-cta');
-            if (ctaButton) {
-                ctaButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    // Record ad click
-                    recordAdClick(ad.id);
-                    // In a real app, this would open the ad destination
-                    alert(`Ad clicked: ${ad.platform} ${ad.type}`);
-                });
-            }
         };
 
         // Record Ad Click
@@ -1643,6 +1722,9 @@
             downloadBtn.dataset.url = app.downloadUrl;
             downloadBtn.dataset.id = app.id;
             showScreen('details-screen');
+            
+            // Trigger popunder ad on app detail view
+            triggerPopunderAd();
         };
         
         // Show File Details
@@ -1663,6 +1745,9 @@
             downloadFileBtn.dataset.url = file.downloadUrl;
             downloadFileBtn.dataset.id = file.id;
             showScreen('file-detail-screen');
+            
+            // Trigger popunder ad on file detail view
+            triggerPopunderAd();
         };
 
         // Record Download
@@ -1709,6 +1794,9 @@
                     button.disabled = false;
                 }, 1000);
             }, 2000); // 2 second delay to show animation
+            
+            // Trigger popunder ad on download
+            triggerPopunderAd();
         };
 
         // Render Notifications
@@ -1826,6 +1914,9 @@
                         allAds.push(ad);
                     }
                 });
+                
+                // Load Adsterra ads
+                loadAdsterraAds(allAds);
                 
                 // Update ads display
                 displayAds();
